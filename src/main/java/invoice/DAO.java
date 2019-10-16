@@ -96,37 +96,46 @@ public class DAO {
                         PreparedStatement state3 = connection.prepareStatement(sql3);
                         PreparedStatement state4 = connection.prepareStatement(sql4);
                         PreparedStatement state5 = connection.prepareStatement(sql5)) {
-                System.out.println("COUCOU");
-                state1.setInt(1, idCust);
-                state1.executeUpdate(); // Création facture
-                ResultSet rs = state3.executeQuery();
-                ResultSet rs2 = null;
-                rs.next(); // On a le dernier ID donc celui de notre facture créé
-                idInv = rs.getInt("MaxId");
+                connection.setAutoCommit(false);
+                try {
                 
-                for(int i = 0 ; i < productIDs.length ; i++) {
-                    System.out.println(total);
-                    state4.setInt(1,productIDs[i]); // On prend le prix du produit
-                    rs2 = state4.executeQuery();
-                    rs2.next();
-                    /* On met tous les paramètres */
-                    state2.setInt(1,idInv);
-                    state2.setInt(2,productIDs[i]);
-                    state2.setInt(3, quantities[i]);
-                    state2.setInt(4, rs2.getInt("Price"));
-                    state2.executeUpdate();
-                    total += rs2.getInt("Price")*quantities[i]; // On rajoute au total le prixu produits
-                    state4.clearParameters(); // On clear tous les paramètres
-                    state2.clearParameters();
+                    state1.setInt(1, idCust);
+                    state1.executeUpdate(); // Création facture
+                    ResultSet rs = state3.executeQuery();
+                    ResultSet rs2 = null;
+
+
+                    idInv = rs.getInt("MaxId");
+
+                    for(int i = 0 ; i < productIDs.length ; i++) {
+                        System.out.println(total);
+                        state4.setInt(1,productIDs[i]); // On prend le prix du produit
+                        rs2 = state4.executeQuery();
+                        if(!rs2.next())
+                            throw new Exception("Un des produits n'existe pas");
+                        /* On met tous les paramètres */
+                        state2.setInt(1,idInv);
+                        state2.setInt(2,productIDs[i]);
+                        state2.setInt(3, quantities[i]);
+                        state2.setInt(4, rs2.getInt("Price"));
+                        state2.executeUpdate();
+                        total += rs2.getInt("Price")*quantities[i]; // On rajoute au total le prixu produits
+                        state4.clearParameters(); // On clear tous les paramètres
+                        state2.clearParameters();
+                    }
+
+                    state5.setInt(1,total);
+                    state5.setInt(2, idInv);
+                    state5.executeUpdate();
+                    connection.commit();
+                } catch(Exception ex) {
+                    System.out.println(ex);
+                    throw new Exception("Pb SQL");
+                
+                } finally {
+                    connection.setAutoCommit(true);
                 }
                 
-                state5.setInt(1,total);
-                state5.setInt(2, idInv);
-                state5.executeUpdate();
-                
-            } catch(Exception ex) {
-                System.out.println(ex);
-                throw new Exception("Pb SQL");
                 
             }
 	}
